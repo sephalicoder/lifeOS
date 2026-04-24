@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg-1 text-txt-1 font-body;
+  }
+
+  input[type='text'],
+  input[type='time'],
+  input[type='number'],
+  input[type='date'],
+  textarea,
+  select {
+    @apply w-full bg-bg-3 border border-border-2 rounded-lg text-txt-1 px-3 py-2 text-sm outline-none transition-colors;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply border-accent;
+  }
+
+  textarea {
+    @apply resize-y min-h-[80px] leading-relaxed;
+  }
+
+  select option {
+    @apply bg-bg-3;
+  }
+
+  input[type='range'] {
+    @apply w-full accent-accent;
+  }
+
+  input[type='checkbox'] {
+    @apply w-4 h-4 accent-accent cursor-pointer;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all border;
+  }
+  .btn-primary {
+    @apply bg-accent text-bg-1 border-accent hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-txt-2 border-border-2 hover:text-txt-1 hover:bg-bg-3;
+  }
+  .btn-danger {
+    @apply bg-transparent text-red-400 border-red-900 hover:bg-red-950;
+  }
+
+  .card {
+    @apply bg-bg-2 border border-border-1 rounded-xl p-5;
+  }
+
+  .card-label {
+    @apply text-[10px] tracking-widest text-txt-3 uppercase font-medium mb-3;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-2.5 px-5 py-2 text-[13.5px] text-txt-2 border-l-2 border-transparent transition-all hover:text-txt-1 hover:bg-bg-3 cursor-pointer no-underline;
+  }
+
+  .nav-item-active {
+    @apply text-accent bg-accent-dim border-l-accent;
+  }
+
+  .tag {
+    @apply inline-block text-[10px] px-2 py-0.5 rounded-full ml-2 align-middle;
+  }
+  .tag-health   { @apply bg-health-dim text-health; }
+  .tag-rel      { @apply bg-rel-dim text-rel; }
+  .tag-career   { @apply bg-career-dim text-career; }
+  .tag-money    { @apply bg-money-dim text-money; }
+  .tag-personal { @apply bg-bg-3 text-txt-2; }
+
+  .progress-track {
+    @apply h-1 bg-bg-3 rounded-full overflow-hidden mt-2;
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+
+  .page-title {
+    @apply font-head text-4xl font-light text-txt-1 leading-tight;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4;
+  }
+  .modal {
+    @apply bg-bg-2 border border-border-2 rounded-2xl p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+.toast-anim {
+  animation: slideIn 0.3s ease both;
+}
