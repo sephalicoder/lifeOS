@@ -1,115 +1,179 @@
 import { useNavigate } from 'react-router-dom'
-import { MANTRAS, PILLAR_COLORS, PILLARS, greet, todayStr, formatDate } from '../utils/data'
-import ProgressBar from '../components/ProgressBar'
+import { MANTRAS, greet, todayStr, formatDate } from '../utils/data'
+import StreakHeatmap from '../components/StreakHeatmap'
+import RecentActivity from '../components/RecentActivity'
+
+const PILLARS = [
+  {
+    id: 'health',
+    title: 'Health & Energy',
+    icon: '❤️',
+    bg: 'bg-rose-50',
+    border: 'border-rose-200',
+    text: 'text-rose-900',
+    accent: 'bg-rose-500'
+  },
+  {
+    id: 'relationships',
+    title: 'Relationships',
+    icon: '💖',
+    bg: 'bg-pink-50',
+    border: 'border-pink-200',
+    text: 'text-pink-900',
+    accent: 'bg-pink-500'
+  },
+  {
+    id: 'career',
+    title: 'Career & Growth',
+    icon: '🚀',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
+    text: 'text-amber-900',
+    accent: 'bg-amber-500'
+  },
+  {
+    id: 'money',
+    title: 'Money & Wealth',
+    icon: '🪙',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    text: 'text-emerald-900',
+    accent: 'bg-emerald-500'
+  }
+]
 
 export default function Dashboard({ store }) {
   const navigate = useNavigate()
-  const { hrcm, schedule, notes, skills } = store
+  const data = store?.data || {}
+  const schedule = data.schedule || []
+  const notes = data.notes || []
+  const activityLog = data.activityLog || []
+
+  const hrcm = data.hrcm || {
+    health: { score: 8, note: 'Daily workouts' },
+    relationships: { score: 9, note: 'Family calls' },
+    career: { score: 9, note: 'Building lifeOS' },
+    money: { score: 7, note: 'Budgeting' }
+  }
+
   const mantra = MANTRAS[Math.floor(Math.random() * MANTRAS.length)]
-  const upcoming = [...schedule].filter(t => !t.done).sort((a, b) => a.time.localeCompare(b.time)).slice(0, 5)
-  const recent = [...notes].reverse().slice(0, 4)
+  const upcoming = Array.isArray(schedule) ? [...schedule].filter((t) => t && !t.done).slice(0, 4) : []
 
   return (
-    <div className="animate-fade-in">
+    <div className="space-y-6 max-w-5xl mx-auto pb-10">
       {/* Header */}
-      <div className="mb-8">
-        <p className="text-txt-2 text-sm mb-1">{greet()} ◇</p>
-        <h1 className="page-title mb-1">Your Life, Structured.</h1>
-        <p className="text-txt-3 text-xs">{todayStr()}</p>
+      <div>
+        <p className="text-xs font-semibold text-sky-600 tracking-wider uppercase">{greet()}</p>
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-xs text-slate-500 mt-0.5">{todayStr()}</p>
       </div>
 
-      {/* Mantra banner */}
-      <div className="bg-accent-dim border border-amber-700/30 rounded-xl p-5 mb-7 text-center">
-        <p className="font-head italic text-accent text-lg leading-relaxed">{mantra}</p>
+      {/* Daily Mantra */}
+      <div className="cloud-card bg-sky-50/60 border-sky-200 py-3.5 px-5">
+        <p className="text-sm font-medium text-sky-900">✨ "{mantra}"</p>
       </div>
 
-      {/* HRCM Grid */}
-      <p className="card-label">HRCM PILLARS</p>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
-        {PILLARS.map(p => {
-          const d = hrcm[p]
-          const c = PILLAR_COLORS[p]
-          return (
-            <div
-              key={p}
-              onClick={() => navigate(`/${p}`)}
-              className={`${c.bg} border ${c.border} rounded-xl p-4 cursor-pointer hover:-translate-y-0.5 transition-transform`}
-            >
-              <p className={`text-[9px] tracking-widest uppercase font-medium ${c.text} mb-2`}>{p}</p>
-              <p className={`font-head text-3xl font-light ${c.text} leading-none mb-1`}>
-                {d.score}<span className="text-base">/10</span>
-              </p>
-              <p className="text-txt-2 text-xs leading-snug">{d.note}</p>
-              <ProgressBar pct={d.score * 10} color={c.hex} className="mt-2" />
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-7">
-        {/* Today's focus */}
-        <div className="card">
-          <div className="flex justify-between items-center mb-3">
-            <p className="card-label mb-0">TODAY'S FOCUS</p>
-            <button onClick={() => navigate('/daily')} className="text-accent text-xs hover:underline">
-              See all →
-            </button>
-          </div>
-          {upcoming.length === 0
-            ? <p className="text-txt-3 text-sm italic text-center py-4">
-                No tasks yet —{' '}
-                <button onClick={() => navigate('/daily')} className="text-accent">plan your day</button>
-              </p>
-            : upcoming.map(t => (
-                <div key={t.id} className="flex gap-3 py-2 border-b border-border-1 last:border-0">
-                  <span className="text-txt-3 text-xs w-14 shrink-0 pt-0.5">{t.time}</span>
-                  <span className="text-sm text-txt-1">
-                    {t.task}
-                    <span className={`tag tag-${t.category}`}>{t.category}</span>
+      {/* Life Pillars Grid */}
+      <div>
+        <h2 className="text-base font-semibold text-slate-800 mb-3">Pillars Overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {PILLARS.map((p) => {
+            const d = hrcm[p.id] || { score: 0, note: 'No status recorded' }
+            return (
+              <div
+                key={p.id}
+                onClick={() => navigate(`/${p.id}`)}
+                className={`cloud-card ${p.bg} ${p.border} cursor-pointer hover:border-slate-300 transition-all`}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-lg">{p.icon}</span>
+                  <span className={`text-xl font-bold ${p.text}`}>
+                    {d.score}<span className="text-xs font-normal text-slate-500">/10</span>
                   </span>
                 </div>
-              ))
-          }
-        </div>
-
-        {/* Recent notes */}
-        <div className="card">
-          <div className="flex justify-between items-center mb-3">
-            <p className="card-label mb-0">RECENT NOTES</p>
-            <button onClick={() => navigate('/notes')} className="text-accent text-xs hover:underline">
-              See all →
-            </button>
-          </div>
-          {recent.length === 0
-            ? <p className="text-txt-3 text-sm italic text-center py-4">No notes yet</p>
-            : recent.map(n => (
-                <div key={n.id} className="py-2 border-b border-border-1 last:border-0">
-                  <p className="text-sm text-txt-1">{n.title || 'Untitled'}</p>
-                  <p className="text-[11px] text-txt-3 mt-0.5">{formatDate(n.updated)}</p>
+                <h3 className={`font-semibold text-sm ${p.text}`}>{p.title}</h3>
+                <p className="text-xs text-slate-600 truncate mt-0.5">{d.note}</p>
+                
+                {/* Progress Bar */}
+                <div className="w-full bg-white/80 h-1.5 rounded-full mt-3 overflow-hidden border border-slate-200">
+                  <div
+                    className={`h-full rounded-full ${p.accent}`}
+                    style={{ width: `${(d.score || 0) * 10}%` }}
+                  />
                 </div>
-              ))
-          }
+              </div>
+            )
+          })}
         </div>
       </div>
 
-      {/* Skills overview */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-3">
-          <p className="card-label mb-0">SKILLS IN PROGRESS</p>
-          <button onClick={() => navigate('/skills')} className="text-accent text-xs hover:underline">
-            Manage →
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {skills.slice(0, 4).map(s => (
-            <div key={s.id}>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-txt-1">{s.name}</span>
-                <span className="text-accent">{s.pct}%</span>
-              </div>
-              <ProgressBar pct={s.pct} />
+      {/* Heatmap */}
+      <StreakHeatmap logs={activityLog} />
+
+      {/* Recent Activity */}
+      <div className="mt-8">
+        <h3 className="text-base font-semibold text-slate-800 mb-3">Recent Activity</h3>
+        <RecentActivity limit={5} />
+      </div>
+
+      {/* Tasks & Notes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="cloud-card">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-semibold text-slate-800 text-sm">Focus Quests</h3>
+            <button
+              onClick={() => navigate('/daily')}
+              className="text-xs text-sky-600 font-medium hover:underline"
+            >
+              View Schedule →
+            </button>
+          </div>
+          {upcoming.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-6 text-center">No pending items for today.</p>
+          ) : (
+            <div className="space-y-2">
+              {upcoming.map((t) => (
+                <div
+                  key={t.id || t._id}
+                  className="flex items-center justify-between bg-sky-50/50 border border-sky-100 p-2.5 rounded-lg text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sky-700 bg-white px-2 py-0.5 rounded border border-sky-200 font-medium">
+                      {t.time}
+                    </span>
+                    <span className="text-slate-700 font-medium">{t.task}</span>
+                  </div>
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+                    {t.estimatedHours}h
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+        </div>
+
+        <div className="cloud-card">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-semibold text-slate-800 text-sm">Recent Notes</h3>
+            <button
+              onClick={() => navigate('/notes')}
+              className="text-xs text-sky-600 font-medium hover:underline"
+            >
+              View All →
+            </button>
+          </div>
+          {notes.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-6 text-center">No recent notes.</p>
+          ) : (
+            <div className="space-y-2">
+              {notes.slice(0, 3).map((n) => (
+                <div key={n.id || n._id} className="bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-xs">
+                  <p className="font-medium text-slate-800 truncate">{n.title || 'Untitled Note'}</p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">{formatDate(n.updated)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

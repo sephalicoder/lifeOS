@@ -1,92 +1,111 @@
 import { useState } from 'react'
-import Modal, { ModalActions, FormGroup } from '../components/Modal'
 import ProgressBar from '../components/ProgressBar'
 
-const CATEGORIES = ['health', 'relationships', 'career', 'money', 'personal']
-
 export default function Skills({ store }) {
-  const { skills, addSkill, updateSkill, deleteSkill } = store
-  const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ name: '', category: 'career', pct: 0 })
+  const [name, setName] = useState('')
+  const [pct, setPct] = useState(25)
 
-  const handleAdd = () => {
-    if (!form.name.trim()) return
-    addSkill({ ...form, pct: +form.pct })
-    setForm({ name: '', category: 'career', pct: 0 })
-    setShowModal(false)
+  const skills = store?.data?.skills || []
+
+  const handleAddSkill = (e) => {
+    e.preventDefault()
+    if (!name.trim()) return
+
+    const newSkill = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      pct: Number(pct)
+    }
+
+    const updated = [...skills, newSkill]
+    store.updatePillar('skills', updated)
+    setName('')
+  }
+
+  const handleUpdateProgress = (id, newPct) => {
+    const updated = skills.map((s) =>
+      s.id === id ? { ...s, pct: Math.min(100, Math.max(0, Number(newPct))) } : s
+    )
+    store.updatePillar('skills', updated)
+  }
+
+  const handleDeleteSkill = (id) => {
+    const updated = skills.filter((s) => s.id !== id)
+    store.updatePillar('skills', updated)
   }
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-7">
-        <h1 className="page-title mb-1">Skills</h1>
-        <p className="text-txt-2 text-sm">Track what you're learning and growing</p>
+    <div className="animate-fade-in space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Skills Tracker</h1>
+        <p className="text-txt-3 text-sm">Monitor continuous learning and skill mastery.</p>
       </div>
 
-      <div className="flex gap-2 mb-5">
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Add Skill</button>
-      </div>
+      {/* Form */}
+      <form onSubmit={handleAddSkill} className="bg-bg-2 p-4 rounded-xl border border-gray-800 flex flex-col md:flex-row gap-3">
+        <input
+          type="text"
+          placeholder="Skill Name (e.g. React, System Design)..."
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="flex-1 bg-bg-1 border border-gray-700 px-4 py-2 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm"
+        />
+        <div className="flex items-center gap-2 bg-bg-1 border border-gray-700 px-3 py-2 rounded-lg">
+          <span className="text-xs text-txt-3">Initial Progress:</span>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={pct}
+            onChange={(e) => setPct(e.target.value)}
+            className="w-16 bg-transparent text-white text-sm focus:outline-none text-right font-mono"
+          />
+          <span className="text-xs text-white">%</span>
+        </div>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition"
+        >
+          Add Skill
+        </button>
+      </form>
 
-      <div className="card">
+      {/* Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {skills.length === 0 ? (
-          <p className="text-txt-3 italic text-sm text-center py-8">No skills tracked yet</p>
-        ) : skills.map(s => (
-          <div
-            key={s.id}
-            className="grid gap-4 py-4 border-b border-border-1 last:border-0 items-center"
-            style={{ gridTemplateColumns: '1fr auto' }}
-          >
-            <div>
-              <p className="text-sm text-txt-1 mb-0.5">{s.name}</p>
-              <p className="text-[11px] text-txt-2 mb-2">{s.category}</p>
-              <ProgressBar pct={s.pct} className="max-w-xs" />
-            </div>
-            <div className="text-right">
-              <p className="font-head text-2xl font-light text-accent mb-1">{s.pct}%</p>
-              <input
-                type="range" min="0" max="100"
-                value={s.pct}
-                onChange={e => updateSkill(s.id, +e.target.value)}
-                className="w-20 block mb-2"
-              />
-              <button
-                className="btn btn-danger px-2 py-1 text-xs"
-                onClick={() => deleteSkill(s.id)}
-              >Remove</button>
-            </div>
+          <div className="col-span-full bg-bg-2 border border-gray-800 rounded-xl p-8 text-center text-txt-3 text-sm">
+            No skills tracked yet. Add one above!
           </div>
-        ))}
-      </div>
+        ) : (
+          skills.map((s) => (
+            <div key={s.id} className="bg-bg-2 border border-gray-800 p-5 rounded-xl space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-white text-base">{s.name}</h3>
+                <button
+                  onClick={() => handleDeleteSkill(s.id)}
+                  className="text-red-400 hover:text-red-300 text-xs"
+                >
+                  Delete
+                </button>
+              </div>
 
-      {showModal && (
-        <Modal title="Add Skill" onClose={() => setShowModal(false)}>
-          <FormGroup label="SKILL NAME">
-            <input
-              type="text"
-              placeholder="e.g. Spanish, Excel, Running..."
-              value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              autoFocus
-            />
-          </FormGroup>
-          <FormGroup label="CATEGORY">
-            <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </FormGroup>
-          <FormGroup label="CURRENT LEVEL (%)">
-            <input
-              type="number" min="0" max="100"
-              value={form.pct}
-              onChange={e => setForm(f => ({ ...f, pct: e.target.value }))}
-            />
-          </FormGroup>
-          <ModalActions>
-            <button className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleAdd}>Add Skill</button>
-          </ModalActions>
-        </Modal>
-      )}
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={s.pct || 0}
+                  onChange={(e) => handleUpdateProgress(s.id, e.target.value)}
+                  className="flex-1 accent-blue-600 cursor-pointer"
+                />
+                <span className="text-xs font-mono text-accent w-10 text-right">{s.pct || 0}%</span>
+              </div>
+
+              <ProgressBar pct={s.pct || 0} />
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }

@@ -1,93 +1,62 @@
-import { useState, useCallback } from 'react'
-import { load, save, uid, HRCM_DEFAULTS, SKILL_DEFAULTS } from '../utils/data'
+import { useEffect, useState } from 'react'
+import { ref, onValue, set, push } from 'firebase/database'
+import { db } from '../utils/firebase'
+import { useAuth } from './useAuth'
+
+const toArray = (v) => (Array.isArray(v) ? v : v ? Object.values(v) : [])
 
 export function useStore() {
-  const [notes,    setNotesRaw]    = useState(() => load('notes', []))
-  const [schedule, setScheduleRaw] = useState(() => load('schedule', []))
-  const [skills,   setSkillsRaw]   = useState(() => load('skills', SKILL_DEFAULTS))
-  const [hrcm,     setHrcmRaw]     = useState(() => load('hrcm', HRCM_DEFAULTS))
-  const [reflection, setReflectionRaw] = useState(() => load('reflection', ''))
+  const { user } = useAuth()
+  const [data, setData] = useState({
+    schedule: [], notes: [], health: [], relationships: [],
+    career: [], money: [], skills: [], mindset: []
+  })
+  const [loading, setLoading] = useState(true)
 
-  const persist = (key, setter) => (val) => {
-    setter(val)
-    save(key, val)
+  useEffect(() => {
+    if (!user) {
+      setData({ schedule: [], notes: [], health: [], relationships: [], career: [], money: [], skills: [], mindset: [] })
+      setLoading(false)
+      return
+    }
+
+    const userRef = ref(db, `users/${user.uid}`)
+    const unsubscribe = onValue(userRef, (snapshot) => {
+      const val = snapshot.val()
+      setData({
+        schedule: toArray(val?.schedule),
+        notes: toArray(val?.notes),
+        health: toArray(val?.health),
+        relationships: toArray(val?.relationships),
+        career: toArray(val?.career),
+        money: toArray(val?.money),
+        skills: toArray(val?.skills),
+        mindset: toArray(val?.mindset)
+      })
+      setLoading(false)
+    }, (error) => {
+      console.error('Firebase read failed:', error)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [user])
+
+  const updatePillar = (key, updatedItems, changeDescription) => {
+    if (!user) {
+      console.warn('updatePillar called with no user — write skipped')
+      return
+    }
+    const pillarRef = ref(db, `users/${user.uid}/${key}`)
+    set(pillarRef, updatedItems).catch(err => console.error(`Write to ${key} failed:`, err))
+
+    const logRef = ref(db, `users/${user.uid}/activityLog`)
+    push(logRef, {
+      pillar: key,
+      description: changeDescription || `Updated ${key}`,
+      timestamp: Date.now()
+    }).catch(err => console.error('Activity log write failed:', err))
   }
 
-  const setNotes    = persist('notes', setNotesRaw)
-  const setSchedule = persist('schedule', setScheduleRaw)
-  const setSkills   = persist('skills', setSkillsRaw)
-  const setHrcm     = persist('hrcm', setHrcmRaw)
-  const setReflection = persist('reflection', setReflectionRaw)
-
-  // ── NOTES ─────────────────────────────────────────────────
-  const addNote = useCallback(() => {
-    const n = { id: uid(), title: '', body: '', category: 'general', updated: Date.now() }
-    setNotes(prev => [...prev, n])
-    return n.id
-  }, [])
-
-  const updateNote = useCallback((id, patch) => {
-    setNotes(prev => prev.map(n => n.id === id ? { ...n, ...patch, updated: Date.now() } : n))
-  }, [])
-
-  const deleteNote = useCallback((id) => {
-    setNotes(prev => prev.filter(n => n.id !== id))
-  }, [])
-
-  // ── SCHEDULE ──────────────────────────────────────────────
-  const addTask = useCallback((task) => {
-    setSchedule(prev => [...prev, { id: uid(), done: false, ...task }])
-  }, [])
-
-  const toggleTask = useCallback((id) => {
-    setSchedule(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
-  }, [])
-
-  const deleteTask = useCallback((id) => {
-    setSchedule(prev => prev.filter(t => t.id !== id))
-  }, [])
-
-  const clearDone = useCallback(() => {
-    setSchedule(prev => prev.filter(t => !t.done))
-  }, [])
-
-  // ── SKILLS ────────────────────────────────────────────────
-  const addSkill = useCallback((skill) => {
-    setSkills(prev => [...prev, { id: uid(), ...skill }])
-  }, [])
-
-  const updateSkill = useCallback((id, pct) => {
-    setSkills(prev => prev.map(s => s.id === id ? { ...s, pct } : s))
-  }, [])
-
-  const deleteSkill = useCallback((id) => {
-    setSkills(prev => prev.filter(s => s.id !== id))
-  }, [])
-
-  // ── HRCM ──────────────────────────────────────────────────
-  const updateHrcm = useCallback((pillar, patch) => {
-    setHrcm(prev => ({ ...prev, [pillar]: { ...prev[pillar], ...patch } }))
-  }, [])
-
-  const addGoal = useCallback((pillar, text) => {
-    setHrcm(prev => ({
-      ...prev,
-      [pillar]: { ...prev[pillar], goals: [...(prev[pillar].goals || []), text] }
-    }))
-  }, [])
-
-  const removeGoal = useCallback((pillar, idx) => {
-    setHrcm(prev => ({
-      ...prev,
-      [pillar]: { ...prev[pillar], goals: prev[pillar].goals.filter((_, i) => i !== idx) }
-    }))
-  }, [])
-
-  return {
-    notes, addNote, updateNote, deleteNote,
-    schedule, addTask, toggleTask, deleteTask, clearDone,
-    skills, addSkill, updateSkill, deleteSkill,
-    hrcm, updateHrcm, addGoal, removeGoal,
-    reflection, setReflection,
-  }
+  return { data, loading, updatePillar }
 }
